@@ -202,5 +202,33 @@ export enum GrantType {
     RESOURCE_OWNER_PASSWORD_GRANT = "password",
     REFRESH_TOKEN_GRANT = "refresh_token",
     DEVICE_CODE_GRANT = "device_code"
-};
+}
 
+/**
+ * Account types in Cache
+ */
+export enum CacheAccountType {
+    MSSTS_ACCOUNT_TYPE = "MSSTS",
+    ADFS_ACCOUNT_TYPE = "ADFS",
+    MSAV1_ACCOUNT_TYPE = "MSA",
+    OTHER_ACCOUNT_TYPE = "Other"
+}
+
+/**
+ * Separators used in cache
+ */
+export enum Separators {
+    CACHE_KEY_SEPARATOR = "-",
+    CLIENT_INFO_SEPARATOR = "."
+}
+
+/**
+ * Credentail Type stored in the cache
+ */
+export enum CredentialType {
+    ID_TOKEN = "IdToken",
+    ACCESS_TOKEN = "AccessToken",
+    REFRESH_TOKEN = "RefreshToken"
+}
+
+export const APP_META_DATA = "appmetadata";

@@ -1,3 +1,7 @@
+import { AppMetaDataCache } from "./uCache/AppMetaDataCache";
+import { RefreshTokenCache } from "./uCache/RefreshTokenCache";
+import { AccessTokenCache } from "./uCache/AccessTokenCache";
+
 // App Auth Modules and Configuration
 export { PublicClientSPA } from "./client/PublicClientSPA";
 export { AuthorizationCodeClient } from "./client/AuthorizationCodeClient";

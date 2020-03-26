@@ -14,9 +14,10 @@ app.get('/redirect', (req, res) =>  acquireToken(req, res));
 let msal = require('@azure/msal-node');
 const publicClientConfig = {
     auth: {
-        clientId: "99cab759-2aab-420b-91d8-5e3d8d4f063b",
-        authority:
-            "https://login.microsoftonline.com/90b8faa8-cc95-460e-a618-ee770bee1759",
+        // clientId: "99cab759-2aab-420b-91d8-5e3d8d4f063b",
+        clientId: "912c9da4-6c0a-4955-9f5c-4005ea409867",
+        // authority: "https://login.microsoftonline.com/90b8faa8-cc95-460e-a618-ee770bee1759",
+        authority: "https://login.microsoftonline.com/f3c9e581-96ad-4f1b-9527-0e71185cf5e7",
         redirectUri: "http://localhost:3000/redirect",
     },
     cache: {
@@ -53,7 +54,7 @@ function acquireToken(req, res){
     };
 
     pca.acquireTokenByCode(tokenRequest).then((response) => {
-        console.log(JSON.stringify(response));
+        console.log("tokenResponse in acquireTokenByCode: " + JSON.stringify(response));
         res.send(200);
     }).catch((error) => {
         console.log(JSON.stringify(error.response));
