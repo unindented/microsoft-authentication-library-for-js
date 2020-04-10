@@ -10,6 +10,7 @@ import { StringDict } from "./MsalTypes";
 import { Account } from "./Account";
 import { SSOTypes, Constants, PromptState, libraryVersion } from "./utils/Constants";
 import { StringUtils } from "./utils/StringUtils";
+import { RequestTelemetry } from "./mser-telemetry/RequestTelemetry";
 
 /**
  * Nonce: OIDC Nonce definition: https://openid.net/specs/openid-connect-core-1_0.html#IDToken
@@ -39,6 +40,9 @@ export class ServerRequestParameters {
     queryParameters: string;
     extraQueryParameters: string;
 
+    currentTelemetry: string;
+    lastTelemetry: string;
+
     public get authority(): string {
         return this.authorityInstance ? this.authorityInstance.CanonicalAuthority : null;
     }
@@ -52,7 +56,7 @@ export class ServerRequestParameters {
      * @param redirectUri
      * @param state
      */
-    constructor (authority: Authority, clientId: string, responseType: string, redirectUri: string, scopes: Array<string>, state: string, correlationId: string) {
+    constructor (authority: Authority, clientId: string, responseType: string, redirectUri: string, scopes: Array<string>, state: string, correlationId: string, apiId?: number, forceRefresh?: boolean) {
         this.authorityInstance = authority;
         this.clientId = clientId;
         this.nonce = CryptoUtils.createNewGuid();
@@ -70,8 +74,12 @@ export class ServerRequestParameters {
         this.xClientSku = "MSAL.JS";
         this.xClientVer = libraryVersion();
 
+        // MSER telemetry
+        this.currentTelemetry = RequestTelemetry.currentRequest(apiId, forceRefresh);
+
         this.responseType = responseType;
         this.redirectUri = redirectUri;
+
     }
 
     /**

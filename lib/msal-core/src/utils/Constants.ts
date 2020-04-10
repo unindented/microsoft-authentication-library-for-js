@@ -145,6 +145,18 @@ export const PromptState = {
 };
 
 /**
+ * MSER Telemetry Schema version
+ */
+export const SchemaVersion = 2;
+
+/**
+ *
+ */
+export const MserTelemetry = {
+    CACHE_HITS: "cacheHits"
+};
+
+/**
  * MSAL JS Library Version
  */
 export function libraryVersion(): string {

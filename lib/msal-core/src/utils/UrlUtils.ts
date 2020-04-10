@@ -75,6 +75,10 @@ export class UrlUtils {
         }
 
         str.push("client-request-id=" + encodeURIComponent(serverRequestParams.correlationId));
+
+        // MSER Telemetry
+        str.push("x-client-current-telemetry=" + serverRequestParams.currentTelemetry);
+        str.push("x-client-last-telemetry=" + serverRequestParams.lastTelemetry);
         return str;
     }
 

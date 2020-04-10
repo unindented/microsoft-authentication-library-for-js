@@ -40,8 +40,11 @@ import { Constants,
     TemporaryCacheKeys,
     PersistentCacheKeys,
     ErrorCacheKeys,
+    MserTelemetry,
 } from "./utils/Constants";
 import { CryptoUtils } from "./utils/CryptoUtils";
+import { ApiId } from "./mser-telemetry/ApiId";
+import { RequestTelemetry } from "./mser-telemetry/RequestTelemetry";
 
 // default authority
 const DEFAULT_AUTHORITY = "https://login.microsoftonline.com/common";
@@ -154,6 +157,9 @@ export class UserAgentApplication {
     private redirectResponse: AuthResponse;
     private redirectError: AuthError;
 
+    // mser telemetry cache
+    private cacheHits: number;
+
     // Authority Functionality
     protected authorityInstance: Authority;
 
@@ -221,6 +227,14 @@ export class UserAgentApplication {
 
         // cache keys msal - typescript throws an error if any value other than "localStorage" or "sessionStorage" is passed
         this.cacheStorage = new AuthCache(this.clientId, this.config.cache.cacheLocation, this.inCookie);
+
+        /*
+         * TODO: MSER Telemetry
+         * read the number of cacheHits after a redirect
+         */
+        this.cacheHits = this.cacheStorage.getItem(MserTelemetry.CACHE_HITS)
+            ? parseInt(this.cacheStorage.getItem(MserTelemetry.CACHE_HITS))
+            : 0;
 
         // Initialize window handling code
         window.activeRenewals = {};
@@ -386,6 +400,9 @@ export class UserAgentApplication {
         // block the request if made from the hidden iframe
         WindowUtils.blockReloadInHiddenIframes();
 
+        // set mser telemetry cache counter
+        this.cacheStorage.setItem(MserTelemetry.CACHE_HITS, "0");
+
         const interactionProgress = this.cacheStorage.getItem(TemporaryCacheKeys.INTERACTION_STATUS);
         if(interactionType === Constants.interactionTypeRedirect) {
             this.cacheStorage.setItem(TemporaryCacheKeys.REDIRECT_REQUEST, `${Constants.inProgress}${Constants.resourceDelimiter}${request.state}`);
@@ -498,6 +515,15 @@ export class UserAgentApplication {
 
             const loginStartPage = request.redirectStartPage || window.location.href;
 
+            let apiId: number;
+            switch (interactionType) {
+                case Constants.interactionTypePopup:
+                    apiId = isLoginCall ? ApiId.loginPopup : ApiId.acquireTokenPopup;
+                    break;
+                case Constants.interactionTypeRedirect:
+                    apiId = isLoginCall ? ApiId.loginRedirect : ApiId.acquireTokenRedirect;
+            }
+
             serverAuthenticationRequest = new ServerRequestParameters(
                 acquireTokenAuthority,
                 this.clientId,
@@ -505,7 +531,9 @@ export class UserAgentApplication {
                 this.getRedirectUri(request && request.redirectUri),
                 request.scopes,
                 request.state,
-                request.correlationId
+                request.correlationId,
+                apiId,
+                request.forceRefresh
             );
 
             this.updateCacheEntries(serverAuthenticationRequest, account, loginStartPage);
@@ -588,10 +616,13 @@ export class UserAgentApplication {
      */
     acquireTokenSilent(userRequest: AuthenticationParameters): Promise<AuthResponse> {
         const requestCorrelationId = userRequest.correlationId || CryptoUtils.createNewGuid();
+
+        // client telemetry
         const apiEvent: ApiEvent = new ApiEvent(requestCorrelationId, this.logger);
         apiEvent.apiEventIdentifier = API_EVENT_IDENTIFIER.AcquireTokenSilent;
         apiEvent.apiCode = API_CODE.AcquireTokenSilent;
         this.telemetryManager.startEvent(apiEvent);
+
         // validate the request
         const request = RequestUtils.validateRequest(userRequest, false, this.clientId);
 
@@ -626,6 +657,8 @@ export class UserAgentApplication {
                 request.scopes,
                 request.state,
                 request.correlationId,
+                ApiId.acquireTokenSilent,
+                request.forceRefresh
             );
 
             // populate QueryParameters (sid/login_hint) and any other extraQueryParameters set by the developer
@@ -655,16 +688,25 @@ export class UserAgentApplication {
             // resolve/reject based on cacheResult
             if (cacheResultResponse) {
                 this.logger.info("Token is already in cache for scope:" + scope);
+                // TODO: MSER Telemetry
+                ++this.cacheHits;
+                this.cacheStorage.setItem(MserTelemetry.CACHE_HITS, `${this.cacheHits}`);
                 resolve(cacheResultResponse);
                 return null;
             }
             else if (authErr) {
                 this.logger.infoPii(authErr.errorCode + ":" + authErr.errorMessage);
+
+                // reset the cache hits counter
+                this.cacheHits = RequestTelemetry.resetCacheHits(this.cacheHits, this.cacheStorage);
                 reject(authErr);
                 return null;
             }
             // else proceed with login
             else {
+                // reset the cache hits counter
+                this.cacheHits = RequestTelemetry.resetCacheHits(this.cacheHits, this.cacheStorage);
+
                 let logMessage;
                 if (userContainedClaims) {
                     logMessage = "Skipped cache lookup since claims were given.";
