@@ -17,6 +17,10 @@ const myMSALObj = new msal.PublicClientApplication(msalConfig);
 // Register Callbacks for Redirect flow
 myMSALObj.handleRedirectCallback(authRedirectCallBack);
 
+if (!myMSALObj.getAccount()) {
+    signIn('loginRedirect');
+}
+
 function authRedirectCallBack(error, response) {
     if (error) {
         console.log(error);
